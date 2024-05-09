@@ -11,11 +11,46 @@ def make_db():
                     theme_data TEXT,
                     updated_prompt TEXT
                     )''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS credential (
+                        claude_api_key TEXT,
+                        gtp_api_key TEXT
+                    )''')
     conn.commit()
 
     # Close connection
     conn.close()
 
+
+def set_claude_api_key(claude_api_key):
+    try:
+        conn=sqlite3.connect('text_data.db')
+        cursor=conn.cursor()
+        cursor.execute('''SELECT claude_api_key FROM credential''')
+        existing_data=cursor.fetchone()
+        if existing_data:
+            cursor.execute('''UPDATE credential SET claude_api_key = ?''',(claude_api_key,))
+        else:
+            cursor.execute('''INSERT INTO credential (claude_api_key) VALUES (?)''',(claude_api_key,))
+        conn.commit()
+        conn.exit()
+        return "Data saved to database successfully."
+    except Exception as e:
+        return str(e)
+
+def get_claude_api_key():
+    try:
+        conn=sqlite3.connect('text_data.db')
+        cursor=conn.cursor()
+        cursor.execute('''SELECT claude_api_key FROM credential''')
+        data = cursor.fetchone()
+        # print(data)
+        conn.close()
+        # print("Debug: Retrieved data:", data)
+        return data[0] if data else "No data found for the given user ID and option."
+        
+    except Exception as e:
+        return str(e)
+        
 
 def store_training_data(option, training_data):
     try:
