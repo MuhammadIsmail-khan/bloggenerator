@@ -3,6 +3,7 @@ import sqlite3
 from openai import OpenAI
 from database import store_training_data,store_theme_data,store_updated_prompt_data,make_db,get_theme_data_from_database,get_prompt_from_database,get_traning_data_from_database,set_claude_api_key,get_claude_api_key
 import anthropic
+import base64
 
 
 st.set_page_config(layout="wide",page_icon="🧊")
@@ -29,11 +30,20 @@ def GPTModel(frequency_penalty, temperature, prompt,top_p,presence_penalty):
     except Exception as e:
         return str(e)
     
+def decode_api_key(encoded_api_key):
+    decoded_bytes = base64.b64decode(encoded_api_key.encode('utf-8'))
+    decoded_str = str(decoded_bytes, 'utf-8')
+    return decoded_str
+
 
 def claudeModel(prompt,temperature,top_k,top_p):
     try:
+        print(f"--------------------------------------------------------- top p :  {top_p}")
+        print(f"--------------------------------------------------------- temprature :  {temperature}")
+        print(f"--------------------------------------------------------- top k :  {top_k}")
+        api_key=decode_api_key("c2stYW50LWFwaTAzLU5RYktMNW9wZjJiTmE5dGhqS09rSk9HTFJaZ2puYjI5a091WU5oVVczWlhoYzlTblRydWV5YWlCak1SMkdFSFVmMEs0X0owRmgyS3U3U0NMdEVWTUNnLW1vREMwd0FB")
         client = anthropic.Anthropic(
-            api_key=get_claude_api_key(),
+            api_key=api_key,
         )
         message = client.messages.create(
         model="claude-3-opus-20240229",
@@ -205,9 +215,9 @@ def main():
     model=""
     frequency_penalty=""
     temperature=""
-    top_p=""
+    top_p=None
     presence_penalty=""
-    top_k=""
+    top_k=None
     # prompt=""
     
     make_db()
@@ -270,18 +280,37 @@ def main():
     #     option5 = st.slider("Frequency Penality",-2.0, 2.0, 1.0)
     #     frequency_penalty=option5
     with col5:
-        option5 = st.slider("Frequency Penality",-1, 5000, 1)
+        option5 = st.slider("top_k",-1, 5000, 1)
         top_k=option5
+        st.text(f"top_k : {top_k}")
     with col6:
+        if 'top_p' not in st.session_state:
+            st.session_state['top_p']=1
         option6 = st.slider("Top p",0.0, 1.0, 1.0)
-        top_p=option6
-        negativeValue=st.button("-1")
+        positiveValue=st.button("top_p ( 0-1 )")
+        if positiveValue:
+            st.session_state['top_p']=option6
+        negativeValue=st.button("top_p ( -1 )")
         if negativeValue:
-            top_p=-1
+            st.session_state['top_p']=-1
+        top_p=st.session_state['top_p']
+        print(f"-----------------------------------------------     top type : {type(top_p)}")
         st.text(f"top_p : {top_p}")
     with col7:
-        option7 = st.slider("Temperature",0.0, 2.0, 1.0)
-        temperature=option7
+        # option7 = st.slider("Temperature",0.0, 2.0, 1.0)
+        # temperature=option7
+        if 'temperature' not in st.session_state:
+            st.session_state['temperature']=1
+        option7 = st.slider("Temperature",0.0, 1.0, 1.0)
+        positiveValueTemp=st.button("temperature ( 0-1 )")
+        if positiveValueTemp:
+            st.session_state['temperature']=option7
+        negativeValueTemp=st.button("temperature -1")
+        if negativeValueTemp:
+            st.session_state['temperature']=-1
+        temperature=st.session_state['temperature']
+        print(f"-----------------------------------------------     temperature : {type(temperature)}")
+        st.text(f"Temperature : {temperature}")
     option11=st.text_area(label="Input Text")
     blog=option11
     submit_Data=st.button("Submit")
@@ -300,12 +329,12 @@ def main():
         # print(f"--------------------------------------------- modelPrompt : {modelPrompt[0:100]}")
         modelResponse=handleModel(model,frequency_penalty,temperature,modelPrompt,top_p,presence_penalty,top_k)
         # print(f"--------------------------------------------- Model Data === model : {model } , frequency_penalty : {frequency_penalty} , temperature : {temperature} , modelPrompt : {modelPrompt[:50]} , top_p : {top_p} , presence_penalty : {presence_penalty}")
-        # print(f"--------------------------------------------- Model Response : {modelResponse}")
+        print(f"--------------------------------------------- Model Response : {modelResponse}")
 
         st.write(modelResponse)
     
-    
         
+
         
 
     
