@@ -1,12 +1,13 @@
 import streamlit as st
 import sqlite3
 from openai import OpenAI
-from database import store_training_data,store_theme_data,store_updated_prompt_data,make_db,get_theme_data_from_database,get_prompt_from_database,get_traning_data_from_database
+from database import store_training_data,store_theme_data,store_updated_prompt_data,make_db,get_theme_data_from_database,get_prompt_from_database,get_traning_data_from_database,set_claude_api_key,get_claude_api_key
 import anthropic
 
 
 st.set_page_config(layout="wide",page_icon="🧊")
-client = OpenAI(api_key = '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')
+st.title("Martin Blog Generator")
+client = OpenAI(api_key = '')
 
 
 def GPTModel(frequency_penalty, temperature, prompt,top_p,presence_penalty):
@@ -29,15 +30,18 @@ def GPTModel(frequency_penalty, temperature, prompt,top_p,presence_penalty):
         return str(e)
     
 
-def claudeModel(prompt):
+def claudeModel(prompt,temperature,top_k,top_p):
     try:
         client = anthropic.Anthropic(
-            api_key="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",
+            api_key=get_claude_api_key(),
         )
         message = client.messages.create(
         model="claude-3-opus-20240229",
         max_tokens=4000,
-        temperature=0,
+
+        temperature=temperature,
+        top_k=top_k,
+        top_p=top_p,
         system="You are the content generator",
         messages=[
             {
@@ -177,19 +181,20 @@ def handleUpdatePrompt(updatedPrompt):
     # print("updated prompt : ",updatedPrompt[:200])
     store_updated_prompt_data(updatedPrompt)
 
-def handleModel(model,frequency_penalty, temperature, prompt,top_p,presence_penalty):
+def handleModel(model,frequency_penalty, temperature, prompt,top_p,presence_penalty,top_k):
     print("----------------------------- model handle  --------------------   model : ",model)
     if model == "Claude":
         print("----------------------------- in cluade model --------------------")
-        response = claudeModel(prompt)
+        response = claudeModel(prompt,temperature,top_k,top_p)
         return response
-    else:
-        print("----------------------------- in gpt model --------------------")
-        response=GPTModel(frequency_penalty,temperature,prompt,top_p,presence_penalty)
-        return response
+    # else:
+    #     print("----------------------------- in gpt model --------------------")
+    #     response=GPTModel(frequency_penalty,temperature,prompt,top_p,presence_penalty)
+    #     return response
+
 
 def main():
-    global themeData,themeOption,updatedPrompt,promptOption,selectedPromptData,option,blog,model,frequency_penalty, temperature,top_p,presence_penalty
+    global themeData,themeOption,updatedPrompt,promptOption,selectedPromptData,option,blog,model,frequency_penalty, temperature,top_p,presence_penalty,top_k
     themeData=""
     promptOption=""
     themeOption=""
@@ -202,8 +207,9 @@ def main():
     temperature=""
     top_p=""
     presence_penalty=""
+    top_k=""
     # prompt=""
-    st.title("Blog Generator")
+    
     make_db()
     # Create six select menus
     
@@ -213,7 +219,9 @@ def main():
         option1 = st.selectbox("Option", ["AI", "I", "WE","You"])
         option=option1
     with col3:
-        option3 = st.selectbox("Model", ["Claude", "GPT-4"])
+        option3 = st.selectbox("Model", ["Claude"])
+        # option3 = st.selectbox("Model", ["Claude", "GPT-4"])
+
         model=option3
     col2,col8=st.columns(2)
 
@@ -230,15 +238,15 @@ def main():
     col9,col10=st.columns(2)
 
     with col9:
-        option9 = st.selectbox("Prompt",["Static Prompt","Updated Prompt"])
-        if option9 == "Static Prompt":
+        option9 = st.selectbox("Prompt",["Default Prompt","Updated Prompt"])
+        if option9 == "Default Prompt":
             # prompt=Prompts()
-            promptOption="Static Prompt"
+            promptOption="Default Prompt"
             
         else:
             promptOption="Updated Prompt"
     with col10:
-        if promptOption=="Static Prompt":
+        if promptOption=="Default Prompt":
             option10=st.text(promptTemplate)
             selectedPromptData=prompt
         else:
@@ -252,21 +260,29 @@ def main():
         # if savePromptBtn:
         #     handleUpdatePrompt(prompt)
 
-        
-    col4, col5, col6, col7 = st.columns(4)
-    with col4:
-        option4 =st.slider("Presence Penality", 0.0, 2.0, 1.0)
-        presence_penalty=option4
+    
+    # col4, col5, col6, col7 = st.columns(4)
+    col5, col6, col7 = st.columns(3)
+    # with col4:
+    #     option4 =st.slider("Presence Penality", -2.0, 2.0, 1.0)
+    #     presence_penalty=option4
+    # with col5:
+    #     option5 = st.slider("Frequency Penality",-2.0, 2.0, 1.0)
+    #     frequency_penalty=option5
     with col5:
-        option5 = st.slider("Frequency Penality",0.0, 2.0, 1.0)
-        frequency_penalty=option5
+        option5 = st.slider("Frequency Penality",-1, 5000, 1)
+        top_k=option5
     with col6:
-        option6 = st.slider("Top p",0.0, 2.0, 1.0)
+        option6 = st.slider("Top p",0.0, 1.0, 1.0)
         top_p=option6
+        negativeValue=st.button("-1")
+        if negativeValue:
+            top_p=-1
+        st.text(f"top_p : {top_p}")
     with col7:
         option7 = st.slider("Temperature",0.0, 2.0, 1.0)
         temperature=option7
-    option11=st.text_area(label="Blog")
+    option11=st.text_area(label="Input Text")
     blog=option11
     submit_Data=st.button("Submit")
     if submit_Data:
@@ -282,11 +298,13 @@ def main():
         modelPrompt=setting_Prompts(selectedPromptData,example,blog,theme,tone)
         # print(f"--------------------------------------------- selectedPromptData : {selectedPromptData[0:50]}")
         # print(f"--------------------------------------------- modelPrompt : {modelPrompt[0:100]}")
-        modelResponse=handleModel(model,frequency_penalty,temperature,modelPrompt,top_p,presence_penalty)
+        modelResponse=handleModel(model,frequency_penalty,temperature,modelPrompt,top_p,presence_penalty,top_k)
         # print(f"--------------------------------------------- Model Data === model : {model } , frequency_penalty : {frequency_penalty} , temperature : {temperature} , modelPrompt : {modelPrompt[:50]} , top_p : {top_p} , presence_penalty : {presence_penalty}")
-        print(f"--------------------------------------------- Model Response : {modelResponse}")
+        # print(f"--------------------------------------------- Model Response : {modelResponse}")
 
         st.write(modelResponse)
+    
+    
         
         
 
