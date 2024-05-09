@@ -3,7 +3,6 @@ from io import BytesIO
 from PyPDF2 import PdfReader
 from database import store_training_data,get_traning_data_from_database
 import docx
-st.title("training Page")
 
 def get_pdf_text(pdf):
     text=""
@@ -45,7 +44,7 @@ def main():
                 elif option2.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
                     text = get_docx_text(option2)
                 
-                selected_data = text[:1000]
+                selected_data = text
                 
         submit_button = st.form_submit_button("Submit")
         if submit_button:
@@ -77,7 +76,7 @@ def main():
         if You_button:
             textToShow=get_traning_data_from_database("You")
     
-    st.text_area(label="Previous Data",value=textToShow)
+    st.text_area(label="Sample Data",value=textToShow)
 
 if __name__ == "__main__":
     main()
