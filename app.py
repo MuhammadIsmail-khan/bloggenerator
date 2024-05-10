@@ -7,7 +7,7 @@ import base64
 
 
 st.set_page_config(layout="wide",page_icon="🧊")
-st.title("Martin Blog Generator")
+st.title("Martin Content Creation")
 client = OpenAI(api_key = '')
 
 
