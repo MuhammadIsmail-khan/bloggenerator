@@ -298,14 +298,14 @@ def main():
             top_p=option6
             
             # print(f"-----------------------------------------------     top type : {type(top_p)}")
-            st.text(f"top_p : {top_p}")
+            # st.text(f"top_p : {top_p}")
         with col7:
             if 'temperature' not in st.session_state:
                 st.session_state['temperature']=1
             option7 = st.slider("Temperature",0.0, 2.0, 1.0)
             temperature=option7
             # print(f"-----------------------------------------------     temperature : {type(temperature)}")
-            st.text(f"Temperature : {temperature}")
+            # st.text(f"Temperature : {temperature}")
     else:
         col5, col6, col7 = st.columns(3)
         with col5:
